@@ -24,20 +24,25 @@ colunas = [
 # =====================================
 # 🗂️ UPLOAD DO ARQUIVO PELO USUÁRIO
 # =====================================
-uploaded_file = st.file_uploader("Carregue um arquivo .txt (ou deixe em branco para usar o padrão ZIP)", type=["txt"])
+uploaded_file = st.file_uploader(
+    "Carregue um arquivo .txt (ou deixe em branco para usar o padrão ZIP)",
+    type=["txt"]
+)
 
 # =====================================
 # 📥 CARREGAMENTO DOS DADOS
 # =====================================
 try:
     if uploaded_file is not None:
-        # Usuário fez upload
         st.info("📁 Lendo arquivo enviado...")
-        delimiter = st.selectbox("Selecione o delimitador do arquivo:", [",", ";", "\t", "|"])
+        delimiter = st.selectbox(
+            "Selecione o delimitador do arquivo:",
+            [",", ";", "\t", "|"],
+            key="delimiter"
+        )
         df = pd.read_csv(uploaded_file, delimiter=delimiter)
         origem = "arquivo carregado"
     else:
-        # Usa o arquivo ZIP local
         st.info(f"📦 Lendo arquivo local: {arquivo_local}")
         df = pd.read_csv(arquivo_local, sep=r"\s+", header=None, names=colunas, compression="zip")
         origem = "arquivo local ZIP"
@@ -46,41 +51,86 @@ try:
     # 🔍 EXIBIÇÃO DOS DADOS
     # ==============================
     st.success(f"✅ Dados carregados com sucesso a partir do {origem}!")
-    st.subheader("📋 Pré-visualização dos dados")
-    st.dataframe(df.head())
-
-    st.subheader("📊 Estatísticas descritivas")
-    st.write(df.describe())
 
     # ==============================
-    # 📈 GERAÇÃO DE GRÁFICOS
+    # 📈 SELEÇÃO DE COLUNAS
     # ==============================
-    st.subheader("📈 Criação de gráficos interativos")
-
+    st.subheader("📊 Escolha das variáveis para os gráficos")
     colunas = df.columns.tolist()
-    coluna_x = st.selectbox("Selecione o eixo X", colunas)
-    coluna_y = st.selectbox("Selecione o eixo Y", colunas)
 
-    # Gráfico de dispersão
-    st.write("### Gráfico de Dispersão")
-    fig, ax = plt.subplots()
-    ax.scatter(df[coluna_x], df[coluna_y], alpha=0.7)
-    ax.set_xlabel(coluna_x)
-    ax.set_ylabel(coluna_y)
-    st.pyplot(fig)
+    coluna_x = st.selectbox("Selecione o eixo X", colunas, key="select_x_1")
+    coluna_y = st.selectbox("Selecione o eixo Y", colunas, key="select_y_1")
 
-    # Gráfico de linha
-    st.write("### Gráfico de Linha")
-    fig, ax = plt.subplots()
-    ax.plot(df[coluna_x], df[coluna_y])
-    ax.set_xlabel(coluna_x)
-    ax.set_ylabel(coluna_y)
-    st.pyplot(fig)
+    # ==============================
+    # 🎨 GRÁFICOS LADO A LADO
+    # ==============================
+    st.markdown("---")
+    st.subheader("📈 Visualização dos Gráficos")
 
-    # Gráfico de barras interativo
-    st.write("### Gráfico de Barras (interativo e ajustado)")
-    grouped_data = df.groupby(coluna_x)[coluna_y].mean().reset_index()
-    st.bar_chart(grouped_data, x=coluna_x, y=coluna_y)
+    col1, col2 = st.columns([1, 1], gap="large")
+
+    # -------- Gráfico de Dispersão --------
+    with col1:
+        st.write("### 🔹 Gráfico de Dispersão")
+        fig, ax = plt.subplots(figsize=(6, 4))
+        sc = ax.scatter(df[coluna_x], df[coluna_y], c=df[coluna_y], cmap='viridis', alpha=0.7)
+        ax.set_xlabel(coluna_x)
+        ax.set_ylabel(coluna_y)
+        ax.set_title(f"{coluna_y} vs {coluna_x}")
+        plt.colorbar(sc, ax=ax, label=coluna_y)
+        st.pyplot(fig, use_container_width=True)
+
+    # -------- Gráfico de Linha --------
+    with col2:
+        st.write("### 🔸 Gráfico de Linha")
+        df_sorted = df.sort_values(by=coluna_x)
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.plot(df_sorted[coluna_x], df_sorted[coluna_y], color="#ff7f0e", linewidth=2)
+        ax.set_xlabel(coluna_x)
+        ax.set_ylabel(coluna_y)
+        ax.set_title(f"{coluna_y} ao longo de {coluna_x}")
+        st.pyplot(fig, use_container_width=True)
+
+    # ==============================
+    # 📊 GRÁFICOS ADICIONAIS
+    # ==============================
+    st.markdown("---")
+    st.subheader("📊 Gráficos Adicionais")
+
+    coluna_x2 = st.selectbox("Selecione o eixo X (adicional)", colunas, key="select_x_2")
+    coluna_y2 = st.selectbox("Selecione o eixo Y (adicional)", colunas, key="select_y_2")
+
+    # Gráficos lado a lado novamente
+    col3, col4 = st.columns([1, 1], gap="large")
+
+    # -------- Gráfico de Dispersão Adicional --------
+    with col3:
+        st.write("### 🟢 Gráfico de Dispersão Adicional")
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.scatter(df[coluna_x2], df[coluna_y2], alpha=0.7, color="tab:blue")
+        ax.set_xlabel(coluna_x2)
+        ax.set_ylabel(coluna_y2)
+        ax.set_title(f"{coluna_y2} vs {coluna_x2}")
+        st.pyplot(fig, use_container_width=True)
+
+    # -------- Gráfico de Linha Adicional --------
+    with col4:
+        st.write("### 🟠 Gráfico de Linha Adicional")
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.plot(df[coluna_x2], df[coluna_y2], color="tab:orange", linewidth=2)
+        ax.set_xlabel(coluna_x2)
+        ax.set_ylabel(coluna_y2)
+        ax.set_title(f"{coluna_y2} ao longo de {coluna_x2}")
+        st.pyplot(fig, use_container_width=True)
+
+    # ==============================
+    # 📊 GRÁFICO DE BARRAS
+    # ==============================
+    st.markdown("---")
+    st.subheader("📊 Gráfico de Barras (Média por Grupo)")
+
+    grouped_data = df.groupby(coluna_x2)[coluna_y2].mean().reset_index()
+    st.bar_chart(grouped_data, x=coluna_x2, y=coluna_y2, use_container_width=True)
 
 except Exception as e:
     st.error(f"❌ Erro ao carregar ou processar o arquivo: {e}")
