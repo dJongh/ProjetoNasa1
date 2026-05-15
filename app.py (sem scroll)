@@ -1,0 +1,115 @@
+#streamlit sen scroll Gemini
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# ======================
+# 🔧 CONFIGURAÇÃO INICIAL
+# ======================
+st.set_page_config(page_title="Visualizador de Dados", page_icon="📊", layout="wide")
+st.title("📊 Visualizador de Dados TXT ou ZIP")
+
+# Caminho local padrão
+arquivo_local = r"C:\Users\diego\Downloads\train_FD001.txt.zip"
+
+# Colunas esperadas (no caso do dataset ZIP)
+colunas = [
+    'id', 'cycle', 'setting1', 'setting2', 'setting3',
+    'sensor1', 'sensor2', 'sensor3', 'sensor4', 'sensor5',
+    'sensor6', 'sensor7', 'sensor8', 'sensor9', 'sensor10',
+    'sensor11', 'sensor12', 'sensor13', 'sensor14', 'sensor15',
+    'sensor16', 'sensor17', 'sensor18', 'sensor19', 'sensor20',
+    'sensor21'
+]
+
+# =====================================
+# 🗂️ UPLOAD DO ARQUIVO PELO USUÁRIO
+# =====================================
+uploaded_file = st.file_uploader(
+    "Carregue um arquivo .txt (ou deixe em branco para usar o padrão ZIP)",
+    type=["txt"]
+)
+
+# =====================================
+# 📥 CARREGAMENTO DOS DADOS
+# =====================================
+try:
+    if uploaded_file is not None:
+        st.info("📁 Lendo arquivo enviado...")
+        delimiter = st.selectbox(
+            "Selecione o delimitador do arquivo:",
+            [",", ";", "\t", "|"],
+            key="delimiter"
+        )
+        df = pd.read_csv(uploaded_file, delimiter=delimiter)
+        origem = "arquivo carregado"
+    else:
+        st.info(f"📦 Lendo arquivo local: {arquivo_local}")
+        df = pd.read_csv(arquivo_local, sep=r"\s+", header=None, names=colunas, compression="zip")
+        origem = "arquivo local ZIP"
+
+    st.success(f"✅ Dados carregados com sucesso a partir do {origem}!")
+
+    # ==============================
+    # 📈 SELEÇÃO DE COLUNAS
+    # ==============================
+    st.subheader("📊 Escolha das variáveis para os gráficos")
+    colunas = df.columns.tolist()
+
+    coluna_x = st.selectbox("Selecione o eixo X", colunas, key="select_x_1")
+    coluna_y = st.selectbox("Selecione o eixo Y", colunas, key="select_y_1")
+
+    coluna_x2 = st.selectbox("Selecione o eixo X (adicional)", colunas, key="select_x_2")
+    coluna_y2 = st.selectbox("Selecione o eixo Y (adicional)", colunas, key="select_y_2")
+
+    # ==============================
+    # 🎨 GRÁFICOS EM GRID (SEM SCROLL)
+    # ==============================
+    st.markdown("---")
+    st.subheader("📈 Visualização dos Gráficos")
+
+    # Primeira linha: dispersão + linha
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("### 🔹 Dispersão")
+        fig, ax = plt.subplots(figsize=(4, 3))
+        sc = ax.scatter(df[coluna_x], df[coluna_y], c=df[coluna_y], cmap='viridis', alpha=0.7)
+        ax.set_xlabel(coluna_x)
+        ax.set_ylabel(coluna_y)
+        plt.colorbar(sc, ax=ax, label=coluna_y)
+        st.pyplot(fig, use_container_width=True)
+
+    with col2:
+        st.write("### 🔸 Linha")
+        df_sorted = df.sort_values(by=coluna_x)
+        fig, ax = plt.subplots(figsize=(4, 3))
+        ax.plot(df_sorted[coluna_x], df_sorted[coluna_y], color="#ff7f0e", linewidth=2)
+        ax.set_xlabel(coluna_x)
+        ax.set_ylabel(coluna_y)
+        st.pyplot(fig, use_container_width=True)
+
+    # Segunda linha: dispersão adicional + linha adicional
+    col3, col4 = st.columns(2)
+    with col3:
+        st.write("### 🟢 Dispersão Adicional")
+        fig, ax = plt.subplots(figsize=(4, 3))
+        ax.scatter(df[coluna_x2], df[coluna_y2], alpha=0.7, color="tab:blue")
+        ax.set_xlabel(coluna_x2)
+        ax.set_ylabel(coluna_y2)
+        st.pyplot(fig, use_container_width=True)
+
+    with col4:
+        st.write("### 🟠 Linha Adicional")
+        fig, ax = plt.subplots(figsize=(4, 3))
+        ax.plot(df[coluna_x2], df[coluna_y2], color="tab:orange", linewidth=2)
+        ax.set_xlabel(coluna_x2)
+        ax.set_ylabel(coluna_y2)
+        st.pyplot(fig, use_container_width=True)
+
+    # Terceira linha: gráfico de barras
+    st.subheader("📊 Barras (Média por Grupo)")
+    grouped_data = df.groupby(coluna_x2)[coluna_y2].mean().reset_index()
+    st.bar_chart(grouped_data, x=coluna_x2, y=coluna_y2, use_container_width=True)
+
+except Exception as e:
+    st.error(f"❌ Erro ao carregar ou processar o arquivo: {e}")
